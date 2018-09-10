@@ -52,13 +52,30 @@ function getAddressComponents(gmapsComponents) {
 class Geosuggest extends Component {
   _geoSuggest = [];
 
-  constructor(props) {
-    super(props);
+  static defaultProps = {
+    placeholder: Drupal.t('Search locations')
+  };
+
+  constructor(props, defaultProps) {
+    super(props, defaultProps);
+
+    // Build the configurable settings array for the geosuggest component.
+    let settings = {};
+    if (this.props.placeholder) {
+      settings['placeholder'] = this.props.placeholder;
+    }
+    if (this.props.types) {
+      settings['types'] = [this.props.types];
+    }
+    if (this.props.available_countries) {
+      settings['country'] = Object.values(this.props.available_countries);
+    }
 
     // Save the selected values into the components state, so that we don't have
     // to rely on the hidden element's value.
     this.state = {
-      values: props.defaultValues
+      values: props.defaultValues,
+      settings: settings,
     };
   }
 
@@ -125,7 +142,6 @@ class Geosuggest extends Component {
    * @param index The index of the entry to remove.
    */
   removeItem(index) {
-    console.log(index);
     this.setState((prevState, props) => {
       const newValues = prevState.values.filter((value, i) => {
         if (index == i) {
@@ -157,6 +173,7 @@ class Geosuggest extends Component {
           onSuggestSelect={suggest => this.onSuggestSelect(index, suggest)}
           initialValue={initial_value}
           className="addressfield-geosuggest__input"
+          {...this.state.settings}
         />
         {showButton == true && (
           <RemoveButton

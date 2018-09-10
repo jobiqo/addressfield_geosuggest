@@ -17,6 +17,9 @@ import Geosuggest from "./components/Geosuggest";
           <Geosuggest
             valuesContainer={document.getElementById(values_elm_id)}
             defaultValues={default_values}
+            placeholder={element.placeholder}
+            available_countries={element.available_countries}
+            types={element.types}
           />,
           document.getElementById(element_id)
         );
