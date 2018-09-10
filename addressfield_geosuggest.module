@@ -187,7 +187,7 @@ function addressfield_geosuggest_widget_transform($element, &$form_state, $form)
 
   // Throw an form_error, if there was no valid json, or an empty array was
   // passed.
-  if (empty($values)) {
+  if ($element['#required']  && empty($values) || $values == NULL) {
     form_error($element, t('Please choose a location from the suggestions.'));
     return;
   }
