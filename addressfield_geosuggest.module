@@ -175,10 +175,15 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
  * address field needs.
  */
 function addressfield_geosuggest_widget_transform($element, &$form_state, $form) {
+  // Don't validate the form values in the field ui.
+  if ($form['#form_id'] == 'field_ui_field_edit_form') {
+    return;
+  }
+
   $parents = $element['#parents'];
   // If nothing was selected, and the element is required, throw an
   // form_set_error.
-  if ($element['#required'] && empty($element['value']['#value'])) {
+  if (!empty($element['#required']) && empty($element['value']['#value'])) {
     form_error($element, t('Please choose a location from the suggestions.'));
     return;
   }
@@ -187,7 +192,7 @@ function addressfield_geosuggest_widget_transform($element, &$form_state, $form)
 
   // Throw an form_error, if there was no valid json, or an empty array was
   // passed.
-  if ($element['#required']  && empty($values) || $values == NULL) {
+  if (!empty($element['#required']) && empty($values) || $values == NULL) {
     form_error($element, t('Please choose a location from the suggestions.'));
     return;
   }
