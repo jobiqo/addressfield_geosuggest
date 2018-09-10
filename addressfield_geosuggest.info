@@ -1,0 +1,7 @@
+name = Addressfield geosuggest
+description = An addressfield autocomplete widget based on react-geosuggest
+package = Fields
+core = 7.x
+php = 7.0
+dependencies[] = addressfield
+files[] = addressfield_geosuggest.test

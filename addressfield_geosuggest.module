@@ -1,0 +1,358 @@
+<?php
+
+/**
+ * @file
+ * Addressfield geosuggest module code.
+ */
+
+/**
+ * Returns the set google places API.
+ *
+ * The key is set via the variable "addressfield_geosuggest_api_key".
+ *
+ * @return null|string
+ *   They key as a string if set, otherwise null.
+ */
+function addressfield_geosuggest_api_key() {
+  $api_key = variable_get('addressfield_geosuggest_api_key', NULL);
+  if (empty($api_key)) {
+    watchdog('addressfield_geosuggest',
+      'API key was not set. Please set it via the variable addressfield_geosuggest_api_key.',
+      [],
+      WATCHDOG_ERROR);
+  }
+
+  return $api_key;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function addressfield_geosuggest_field_widget_info() {
+  return [
+    'addressfield_geosuggest' => [
+      'label' => t('Geosuggest'),
+      'field types' => ['addressfield'],
+      'behaviors' => [
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+      ],
+      'settings' => [
+        'placeholder' => '',
+        'bounds' => [],
+        'country' => [],
+        'types' => [],
+        'min_length' => 1,
+        'query_delay' => 250,
+        // @todo: Add additional settings.
+        // @see: https://github.com/ubilabs/react-geosuggest/#properties
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_field_widget_settings_form().
+ */
+function addressfield_geosuggest_field_widget_settings_form($field, $instance) {
+  $form = [];
+
+  $widget = $instance['widget'];
+  if ($widget['instance'] == 'addressfield_geosuggest') {
+    $settings = $widget['settings'];
+
+    // @todo: Implement forms for all settings.
+  }
+
+  return $form;
+}
+
+/**
+ * Implements hook_field_widget_form().
+ *
+ * Builds up the form for the geosuggest widget and attaches all the required
+ * assets.
+ */
+function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $css_id = drupal_html_id("geosuggest-{$instance['field_name']}-{$delta}");
+  $values_element_id = drupal_html_id("{$css_id}__values");
+
+  // Settings to pass to the geosuggest js element.
+  $settings = [
+    'element_id' => $css_id,
+    'values_element_id' => $values_element_id,
+    'default_values' => [],
+  ];
+
+  $default_values = [];
+
+  // Add the default values to the settings.
+  foreach ($items as $item) {
+    $data = unserialize($item['data']);
+    $settings['default_values'][] = [
+      'country' => $item['country'],
+      'administrative_area' => $item['administrative_area'],
+      'sub_administrative_area' => $item['sub_administrative_area'],
+      'locality' => $item['locality'],
+      'data' => $data,
+    ];
+  }
+
+  $api_key = addressfield_geosuggest_api_key();
+
+  $element += [
+    '#type' => 'container',
+    '#title' => t('Geosuggest'),
+    '#element_validate' => [
+      'addressfield_geosuggest_widget_transform',
+    ],
+    '#attached' => [
+      'js' => [
+        [
+          'data' => ['addressfield_geosuggest' => [$settings]],
+          'type' => 'setting',
+        ],
+        "https://maps.googleapis.com/maps/api/js?key=$api_key&libraries=places",
+        drupal_get_path('module', 'addressfield_geosuggest') . '/js/dist/main.js',
+      ],
+      'css' => [
+        drupal_get_path('module', 'addressfield_geosuggest') . '/addressfield_geosuggest.css',
+      ],
+    ],
+  ];
+
+  $element['value'] = [
+    '#type' => 'hidden',
+    '#required' => $element['#required'],
+    '#attributes' => [
+      'id' => $values_element_id,
+    ],
+    '#default_value' => empty($settings['default_values']) ? '' : json_encode($settings['default_values']),
+  ];
+
+  // Create an element to which react can attach to. React will use the css_id
+  // to identify the element.
+  $element['widget'] = [
+    '#type' => 'item',
+    '#title' => $instance['label'],
+    '#markup' => "<div id='$css_id' class='form-item-input'></div>",
+  ];
+
+  return $element;
+}
+
+/**
+ * Element validation callback for the geosuggest widget.
+ *
+ * Validates & transform the passed client side values correctly into what the
+ * address field needs.
+ */
+function addressfield_geosuggest_widget_transform($element, &$form_state, $form) {
+  $parents = $element['#parents'];
+  // If nothing was selected, and the element is required, throw an
+  // form_set_error.
+  if ($element['#required'] && empty($element['value']['#value'])) {
+    form_error($element, t('Please choose a location from the suggestions.'));
+    return;
+  }
+
+  $values = json_decode($element['value']['#value'], TRUE);
+
+  // Throw an form_error, if there was no valid json, or an empty array was
+  // passed.
+  if (empty($values)) {
+    form_error($element, t('Please choose a location from the suggestions.'));
+    return;
+  }
+
+  foreach ($values as &$value) {
+    // In case the geocoder only returns level 3 and not level 2, take level 3
+    // as level 2. Happens for some German cities, like "Grenzach-Wyhlen, DE".
+    if (empty($value['administrative_area_level_2']) && !empty($value['administrative_area_level_3'])) {
+      $value['administrative_area_level_2'] = $value['administrative_area_level_3'];
+    }
+
+    // Check if the place is valid through the place id.
+    if (!addressfield_geosuggest_valid_value($value['data']['place_id'])) {
+      form_error($element, t('Please choose a location from the suggestions.'));
+      return;
+    }
+
+    // Save the geocoding response a serialized blob into the data key.
+    $value['data'] = serialize($value['data']);
+  }
+
+  // Allow modules to alter the processed values.
+  $context = [
+    'element' => $element,
+    'form_state' => $form_state,
+    'form' => $form,
+  ];
+  drupal_alter("addressfield_geosuggest_transform_value", $values, $context);
+
+  drupal_array_set_nested_value($form_state['values'], $parents, $values);
+  drupal_array_set_nested_value($form_state['input'], $parents, $values);
+}
+
+/**
+ * Checks if the given addressfield value address is valid.
+ *
+ * This either done by the checking the place id in the data array, which adds
+ * no additional cost (@see addressfield_geosuggest_fetch_place_id()) or by
+ * finding the place id via formatted address or the address field values. This
+ * causes additional placed basic details costs.
+ *
+ * @param array $value
+ *   The value array for selected location as a reference, so we can add the
+ *   place id if it's missing.
+ *
+ * @return bool
+ *   True if the place id is valid, false if not.
+ */
+function addressfield_geosuggest_valid_value(array &$value) {
+  // Use the place id if set.
+  if (!empty($value['data']['place_id'])) {
+    $place_id = addressfield_geosuggest_fetch_place_id($value['data']['place_id']);
+
+    if (empty($place_id)) {
+      return FALSE;
+    }
+    // Use the place id, in case it has been updated.
+    $value['data']['place_id'] = $place_id;
+
+    return TRUE;
+  }
+  // Use the formatted address if the place id is not set.
+  elseif (!empty($value['data']['formatted_address'])) {
+    $place_id = addressfield_geosuggest_get_place_id_for_address($value['data']['formatted_address']);
+
+    if (empty($place_id)) {
+      return FALSE;
+    }
+
+    // Set the place id, so that next time we can use the fetch place id
+    // function instead.
+    $value['data']['place_id'] = $place_id;
+    return TRUE;
+  }
+  // Use the addressfield values in the worst case.
+  elseif (!empty($value)) {
+    // The keys of the values we can use to build an address array.
+    $keys = [
+      'locality',
+      'sub_administrative_area',
+      'administrative_area',
+      'country',
+    ];
+    $address = '';
+
+    foreach ($keys as $key) {
+      if (!empty($value[$key])) {
+        $address = $value[$key] . ', ';
+      }
+    }
+
+    // Remove the last space and comma.
+    $address = substr($address, 0, strlen($address) - 2);
+
+    $place_id = addressfield_geosuggest_get_place_id_for_address($address);
+
+    if (empty($place_id)) {
+      return FALSE;
+    }
+
+    // Set the place id, so that next time we can use the fetch place id
+    // function instead.
+    $value['data']['place_id'] = $place_id;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Fetches a place id by the given place id.
+ *
+ * This is useful to either validate a place id or retrieving an updated place
+ * id. This is done via the places details api. According to the pricing docs
+ * this types of requests are free
+ * @see https://developers.google.com/maps/billing/understanding-cost-of-use#places-details-id-refresh
+ *
+ * @param string $place_id
+ *   The place id to search for.
+ *
+ * @return string|null
+ *   The found, updated place id or null if it couldn't be found or an error was
+ *   returned by the API.
+ */
+function addressfield_geosuggest_fetch_place_id($place_id) {
+  // Create the url to the place details endpoint, request only the place_id.
+  $url = url('https://maps.googleapis.com/maps/api/place/details/json', [
+    'query' => [
+      'placeid' => $place_id,
+      'fields' => 'place_id',
+      'key' => addressfield_geosuggest_api_key(),
+    ],
+  ]);
+
+  $response = drupal_http_request($url);
+
+  if (!empty($response->error)) {
+    watchdog('addressfield_geosuggest', 'HTTP request for fetching the place id @placeid failed due to: @message', [
+      '@placeid' => $place_id,
+      '@message' => $response->error,
+    ]);
+    return NULL;
+  }
+
+  // The response message always 200, even if the place couldn't be found. It
+  // will output errors using status key. If it's 'OK', the response will
+  // contain the place id.
+  $resp_msg = json_decode($response->data);
+  if ($resp_msg->status == 'OK') {
+    return $resp_msg->result->place_id;
+  }
+
+  return NULL;
+}
+
+/**
+ * Fetches the place id for an address string.
+ *
+ * @param string $address
+ *   The address to geocode.
+ *
+ * @return string|null
+ *   The place id for the address or null if nothing was found or an error was
+ *   returned by the API.
+ */
+function addressfield_geosuggest_get_place_id_for_address($address) {
+  $url = url('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', [
+    'query' => [
+      'input' => $address,
+      'inputtype' => 'textquery',
+      'key' => addressfield_geosuggest_api_key(),
+      'fields' => 'place_id',
+    ],
+  ]);
+
+  $response = drupal_http_request($url);
+
+  if (!empty($response->error)) {
+    watchdog('addressfield_geosuggest', 'HTTP request for fetching the place id vai the address @address failed due to: @message', [
+      '@address' => $address,
+      '@message' => $response->error,
+    ]);
+    return NULL;
+  }
+
+  // The response message always 200, even if the place couldn't be found. It
+  // will output errors using status key. If it's 'OK', the response will
+  // contain the place id.
+  $resp_msg = json_decode($response->data);
+  if ($resp_msg->status == 'OK') {
+    // Always take the first candidate.
+    return $resp_msg->candidates[0]->place_id;
+  }
+
+  return NULL;
+}

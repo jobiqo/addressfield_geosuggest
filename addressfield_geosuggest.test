@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Contains tests for the addressfield_geosuggest module.
+ */
+
+/**
+ * Test class for the Addressfield Geosuggest module.
+ */
+class AddressFieldGeosuggestTestCase extends DrupalUnitTestCase {
+
+  public static function getInfo() {
+    return [
+      'name' => 'Addressfield Geosuggest Unit tests',
+      'description' => 'Test the basic functions of the addressfield geosuggest module.',
+      'group' => 'Addressfield',
+    ];
+  }
+
+  /**
+   * Sets the API via the environment variable addressfield_geosuggest_api_key.
+   *
+   * Unfortunately the variables set on the site are not available on the
+   * tests. You also can set them in the setUp() function. Therefore take the
+   * api key from the environment variables and set it for each test function
+   * separately.
+   */
+  protected function setAPIKey() {
+    global $conf;
+
+    $api_key = getenv('addressfield_geosuggest_api_key');
+    // Set the variable via the global conf so that we don't write into the
+    // database and can therefore use DrupalUnitTestCase.
+    $conf['addressfield_geosuggest_api_key'] = $api_key;
+  }
+
+  /**
+   * Test address value array validation.
+   */
+  public function testValidatingAddressValue() {
+    $this->setAPIKey();
+
+    // The validation with a valid place id.
+    $value = ['data' => ['place_id' => 'ChIJn8o2UZ4HbUcRRluiUYrlwv0']];
+    $result = addressfield_geosuggest_valid_value($value);
+    $this->assertTrue($result, 'Valid place id was found');
+
+    // Test the validation with an invalid place id.
+    $value = ['data' => ['place_id' => 'foobar']];
+    $result = addressfield_geosuggest_valid_value($value);
+    $this->assertFalse($result, 'Invalid place id was found.');
+
+    // Test validation with a formatted address.
+    $value = ['data' => ['formatted_address' => 'Vienna, Austria']];
+    $result = addressfield_geosuggest_valid_value($value);
+    $this->assertTrue($result, 'Valid place id for the formatted address was found');
+    $this->assertFalse(empty($value['data']['place_id']), 'A place id for the formatted address was set.');
+
+    // Test validation with the addressfield values.
+    $value = [
+      'country'  => 'Austria',
+      'locality' => 'Vienna',
+    ];
+    $result = addressfield_geosuggest_valid_value($value);
+    $this->assertTrue($result, 'Valid place id for the addressfield values was found');
+    $this->assertFalse(empty($value['data']['place_id']), 'A place id for the addressfield values was set.');
+  }
+
+}
