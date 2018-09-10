@@ -38,13 +38,8 @@ function addressfield_geosuggest_field_widget_info() {
       ],
       'settings' => [
         'placeholder' => '',
-        'bounds' => [],
-        'country' => [],
+        'available_countries' => [],
         'types' => [],
-        'min_length' => 1,
-        'query_delay' => 250,
-        // @todo: Add additional settings.
-        // @see: https://github.com/ubilabs/react-geosuggest/#properties
       ],
     ],
   ];
@@ -57,10 +52,43 @@ function addressfield_geosuggest_field_widget_settings_form($field, $instance) {
   $form = [];
 
   $widget = $instance['widget'];
-  if ($widget['instance'] == 'addressfield_geosuggest') {
+  if ($widget['type'] == 'addressfield_geosuggest') {
     $settings = $widget['settings'];
 
+    // Values for the types setting.
+    $types = array(
+      'geocode',
+      'establishment',
+      '(regions)',
+      '(cities)',
+    );
+
     // @todo: Implement forms for all settings.
+    $form['placeholder'] = [
+      '#type' => 'textfield',
+      '#title' => t('Placeholder'),
+      '#description' => t('The placeholder to show in the input form'),
+      '#default_value' => empty($settings['placeholder']) ? t('Search locations') : $settings['placeholder'],
+    ];
+
+    $form['available_countries'] = array(
+      '#type' => 'select',
+      '#multiple' => TRUE,
+      '#title' => t('Available countries'),
+      '#description' => t('If no countries are selected, all countries will be available. If one country is selected the google autocomplete search will be restricted to just that one specific country.'),
+      '#options' => _addressfield_country_options_list(),
+      '#default_value' => $settings['available_countries'],
+      '#weight' => 1,
+    );
+
+    $form['types'] = array(
+      '#type' => 'select',
+      '#title' => t('Place types'),
+      '#description' => t('The autocomplete service will return results that match any of the specified types, default is geocode.'),
+      '#options' => drupal_map_assoc($types),
+      '#default_value' => $settings['types'],
+      '#weight' => 4,
+    );
   }
 
   return $form;
