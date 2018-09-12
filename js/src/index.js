@@ -30,8 +30,6 @@ import Geosuggest from "./components/Geosuggest";
           settings['bounds'] = element.bound_bias;
         }
 
-        console.log(settings);
-
         ReactDOM.render(
           <Geosuggest
             valuesContainer={document.getElementById(values_elm_id)}
