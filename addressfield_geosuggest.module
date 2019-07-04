@@ -109,7 +109,26 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
     'element_id' => $css_id,
     'values_element_id' => $values_element_id,
     'default_values' => [],
-  ] + $instance['widget']['settings'];
+  ];
+
+  // Global settings.
+  $countries = variable_get('addressfield_geosuggest_available_countries', NULL);
+  if (!empty($countries)) {
+    $settings['available_countries'] = $countries;
+  }
+
+  $location_bias = variable_get('addressfield_geosuggest_location_bias', NULL);
+  if (!empty($location_bias)) {
+    $settings['location_bias'] = $location_bias;
+  }
+
+  $bound_bias = variable_get('addressfield_geosuggest_bound_bias', NULL);
+  if (!empty($bound_bias)) {
+    $settings['bound_bias'] = $bound_bias;
+  }
+
+  // Field specific settings override the global settings.
+  array_merge($settings, $instance['widget']['settings']);
 
   $default_values = [];
 

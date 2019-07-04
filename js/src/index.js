@@ -13,13 +13,29 @@ import Geosuggest from "./components/Geosuggest";
         let values_elm_id = element.values_element_id;
         let default_values = element.default_values;
 
+        // Build an object with optional settings to be passed to the geosuggest
+        // component.
+        let settings = {};
+
+        if ('available_countries' in element) {
+          settings['country'] = element.available_countries;
+        }
+
+        if ('location_bias' in element && 'radius' in element) {
+          settings['location'] = element.location_bias;
+          settings['radius'] = element.radius;
+        }
+
+        if ('bound_bias' in element) {
+          settings['bounds'] = element.bound_bias;
+        }
+
         ReactDOM.render(
           <Geosuggest
             valuesContainer={document.getElementById(values_elm_id)}
             defaultValues={default_values}
             placeholder={element.placeholder}
-            available_countries={element.available_countries}
-            types={element.types}
+            settings={settings}
           />,
           document.getElementById(element_id)
         );
