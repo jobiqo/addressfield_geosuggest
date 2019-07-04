@@ -205,7 +205,7 @@ function addressfield_geosuggest_widget_transform($element, &$form_state, $form)
     }
 
     // Check if the place is valid through the place id.
-    if (!addressfield_geosuggest_valid_value($value['data']['place_id'])) {
+    if (!addressfield_geosuggest_valid_value($value)) {
       form_error($element, t('Please choose a location from the suggestions.'));
       return;
     }
