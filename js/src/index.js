@@ -30,6 +30,10 @@ import Geosuggest from "./components/Geosuggest";
           settings['bounds'] = element.bound_bias;
         }
 
+        if ('cardinality' in element) {
+          settings['cardinality'] = element.cardinality;
+        }
+
         ReactDOM.render(
           <Geosuggest
             valuesContainer={document.getElementById(values_elm_id)}
