@@ -182,8 +182,11 @@ class Geosuggest extends Component {
       return this.renderGeoInput(i, value.data.formatted_address);
     });
 
-    // Create an additional Geosuggester so that a new item can be entered.
-    geosuggester.push(this.renderGeoInput());
+    // Check for cardinality and if needed create an additional Geosuggester so
+    // that a new item can be entered.
+    if (this.props.settings.cardinality == -1 || this.state.values.length < this.props.settings.cardinality) {
+      geosuggester.push(this.renderGeoInput());
+    }
 
     return <ul className="addressfield-geosuggest">{geosuggester}</ul>;
   }
