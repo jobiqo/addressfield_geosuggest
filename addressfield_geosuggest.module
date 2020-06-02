@@ -40,6 +40,8 @@ function addressfield_geosuggest_field_widget_info() {
         'placeholder' => '',
         'available_countries' => [],
         'types' => [],
+        // Required settings parameter.
+        'format_handlers' => ['address'],
       ],
     ],
   ];
@@ -81,6 +83,14 @@ function addressfield_geosuggest_field_widget_settings_form($field, $instance) {
       '#weight' => 1,
     );
 
+    $form['format_handlers'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Format handlers'),
+      '#options' => addressfield_format_plugins_options(),
+      '#default_value' => $settings['format_handlers'],
+      '#weight' => 1,
+    );
+
     $form['types'] = array(
       '#type' => 'select',
       '#title' => t('Place types'),
@@ -109,7 +119,28 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
     'element_id' => $css_id,
     'values_element_id' => $values_element_id,
     'default_values' => [],
-  ] + $instance['widget']['settings'];
+    'cardinality' => $field['cardinality'],
+    'place_detail_fields' => ['address_components', 'formatted_address'],
+  ];
+
+  // Global settings.
+  $countries = variable_get('addressfield_geosuggest_available_countries', NULL);
+  if (!empty($countries)) {
+    $settings['available_countries'] = $countries;
+  }
+
+  $location_bias = variable_get('addressfield_geosuggest_location_bias', NULL);
+  if (!empty($location_bias)) {
+    $settings['location_bias'] = $location_bias;
+  }
+
+  $bound_bias = variable_get('addressfield_geosuggest_bound_bias', NULL);
+  if (!empty($bound_bias)) {
+    $settings['bound_bias'] = $bound_bias;
+  }
+
+  // Field specific settings override the global settings.
+  array_merge($settings, $instance['widget']['settings']);
 
   $default_values = [];
 
@@ -126,6 +157,7 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
   }
 
   $api_key = addressfield_geosuggest_api_key();
+  $language = language_default();
 
   $element += [
     '#type' => 'container',
@@ -139,7 +171,7 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
           'data' => ['addressfield_geosuggest' => [$settings]],
           'type' => 'setting',
         ],
-        "https://maps.googleapis.com/maps/api/js?key=$api_key&libraries=places",
+        "https://maps.googleapis.com/maps/api/js?key=$api_key&libraries=places&language=$language->language",
         drupal_get_path('module', 'addressfield_geosuggest') . '/js/dist/main.js',
       ],
       'css' => [
@@ -163,6 +195,8 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
     '#type' => 'item',
     '#title' => $instance['label'],
     '#markup' => "<div id='$css_id' class='form-item-input'></div>",
+    // If field is required, show it in the label as well.
+    '#required' => $element['#required'],
   ];
 
   return $element;
@@ -220,7 +254,14 @@ function addressfield_geosuggest_widget_transform($element, &$form_state, $form)
     'form_state' => $form_state,
     'form' => $form,
   ];
-  drupal_alter("addressfield_geosuggest_transform_value", $values, $context);
+  $errors = [];
+  drupal_alter("addressfield_geosuggest_transform_value", $values, $context, $errors);
+  if (!empty($errors)) {
+    foreach ($errors as $error) {
+      form_error($element, $error);
+    }
+    return;
+  }
 
   drupal_array_set_nested_value($form_state['values'], $parents, $values);
   drupal_array_set_nested_value($form_state['input'], $parents, $values);
@@ -319,11 +360,13 @@ function addressfield_geosuggest_valid_value(array &$value) {
  */
 function addressfield_geosuggest_fetch_place_id($place_id) {
   // Create the url to the place details endpoint, request only the place_id.
+  $language = language_default();
   $url = url('https://maps.googleapis.com/maps/api/place/details/json', [
     'query' => [
       'placeid' => $place_id,
       'fields' => 'place_id',
       'key' => addressfield_geosuggest_api_key(),
+      'language' => $language->language,
     ],
   ]);
 
@@ -359,12 +402,14 @@ function addressfield_geosuggest_fetch_place_id($place_id) {
  *   returned by the API.
  */
 function addressfield_geosuggest_get_place_id_for_address($address) {
+  $language = language_default();
   $url = url('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', [
     'query' => [
       'input' => $address,
       'inputtype' => 'textquery',
       'key' => addressfield_geosuggest_api_key(),
       'fields' => 'place_id',
+      'language' => $language->language,
     ],
   ]);
 

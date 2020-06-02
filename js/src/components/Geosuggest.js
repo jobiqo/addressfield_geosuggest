@@ -53,29 +53,17 @@ class Geosuggest extends Component {
   _geoSuggest = [];
 
   static defaultProps = {
-    placeholder: Drupal.t('Search locations')
+    placeholder: Drupal.t('Search locations'),
+    settings: {},
   };
 
   constructor(props, defaultProps) {
     super(props, defaultProps);
 
-    // Build the configurable settings array for the geosuggest component.
-    let settings = {};
-    if (this.props.placeholder) {
-      settings['placeholder'] = this.props.placeholder;
-    }
-    if (this.props.types) {
-      settings['types'] = [this.props.types];
-    }
-    if (this.props.available_countries) {
-      settings['country'] = Object.values(this.props.available_countries);
-    }
-
     // Save the selected values into the components state, so that we don't have
     // to rely on the hidden element's value.
     this.state = {
-      values: props.defaultValues,
-      settings: settings,
+      values: props.defaultValues
     };
   }
 
@@ -173,7 +161,9 @@ class Geosuggest extends Component {
           onSuggestSelect={suggest => this.onSuggestSelect(index, suggest)}
           initialValue={initial_value}
           className="addressfield-geosuggest__input"
-          {...this.state.settings}
+          name={"addressfield-geosuggest-" + index}
+          autoActivateFirstSuggest={true}
+          {...this.props.settings}
         />
         {showButton == true && (
           <RemoveButton
@@ -194,8 +184,11 @@ class Geosuggest extends Component {
       return this.renderGeoInput(i, value.data.formatted_address);
     });
 
-    // Create an additional Geosuggester so that a new item can be entered.
-    geosuggester.push(this.renderGeoInput());
+    // Check for cardinality and if needed create an additional Geosuggester so
+    // that a new item can be entered.
+    if (this.props.settings.cardinality == -1 || this.state.values.length < this.props.settings.cardinality) {
+      geosuggester.push(this.renderGeoInput());
+    }
 
     return <ul className="addressfield-geosuggest">{geosuggester}</ul>;
   }

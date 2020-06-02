@@ -14,12 +14,14 @@
  *   The values array that will be set for the addressfield.
  * @param array $context
  *   The array containing the 'element', 'form_state' and 'form' values.
+ * @param array $errors
+ *   The array to inject possible form errors.
  */
-function hook_addressfield_geosuggest_transform_value_alter(array &$values, array $context) {
+function hook_addressfield_geosuggest_transform_value_alter(array &$values, array $context, array &$errors) {
   foreach ($values as &$value) {
     $data = unserialize($value['data']);
     if ($data['formatted address'] == 'Berlin, Germany') {
-      form_set_error($context['element'], t('Please choose a different location.'));
+      $errors[] = t('Please choose a location from the suggestions.');
       return;
     }
   }
