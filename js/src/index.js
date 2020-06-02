@@ -11,7 +11,14 @@ import Geosuggest from "./components/Geosuggest";
       elements.forEach(element => {
         let element_id = element.element_id;
         let values_elm_id = element.values_element_id;
-        let default_values = element.default_values;
+        let default_values = [];
+        let place_detail_fields = element.place_detail_fields;
+        if (document.getElementById(values_elm_id).value != '') {
+          default_values = JSON.parse(document.getElementById(values_elm_id).value);
+        }
+        else {
+          default_values = element.default_values;
+        }
 
         // Build an object with optional settings to be passed to the geosuggest
         // component.
@@ -40,6 +47,7 @@ import Geosuggest from "./components/Geosuggest";
             defaultValues={default_values}
             placeholder={element.placeholder}
             settings={settings}
+            placeDetailFields={place_detail_fields}
           />,
           document.getElementById(element_id)
         );

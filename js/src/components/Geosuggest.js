@@ -161,6 +161,8 @@ class Geosuggest extends Component {
           onSuggestSelect={suggest => this.onSuggestSelect(index, suggest)}
           initialValue={initial_value}
           className="addressfield-geosuggest__input"
+          name={"addressfield-geosuggest-" + index}
+          autoActivateFirstSuggest={true}
           {...this.props.settings}
         />
         {showButton == true && (
