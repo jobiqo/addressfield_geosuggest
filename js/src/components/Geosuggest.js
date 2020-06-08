@@ -163,6 +163,7 @@ class Geosuggest extends Component {
           className="addressfield-geosuggest__input"
           name={"addressfield-geosuggest-" + index}
           autoActivateFirstSuggest={true}
+          placeholder={this.props.placeholder}
           {...this.props.settings}
         />
         {showButton == true && (
