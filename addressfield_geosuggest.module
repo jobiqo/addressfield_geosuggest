@@ -140,9 +140,12 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
   }
 
   // Field specific settings override the global settings.
-  array_merge($settings, $instance['widget']['settings']);
+  $settings = array_merge($settings, $instance['widget']['settings']);
 
-  $default_values = [];
+  // If placeholder is define, translate it.
+  if (!empty($settings['placeholder'])) {
+    $settings['placeholder'] = t($settings['placeholder']);
+  }
 
   // Add the default values to the settings.
   foreach ($items as $item) {
