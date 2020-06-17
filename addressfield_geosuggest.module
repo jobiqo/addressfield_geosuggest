@@ -8,16 +8,27 @@
 /**
  * Returns the set google places API.
  *
- * The key is set via the variable "addressfield_geosuggest_api_key".
+ * The key is set via the variable "addressfield_geosuggest_api_key" and
+ * "addressfield_geosuggest_api_key_server".
+ *
+ * @param string $type
+ *   Type of key to return, default is browser.
  *
  * @return null|string
  *   They key as a string if set, otherwise null.
  */
-function addressfield_geosuggest_api_key() {
-  $api_key = variable_get('addressfield_geosuggest_api_key', NULL);
+function addressfield_geosuggest_api_key($type = 'browser') {
+  $api_key = NULL;
+  if ($type == 'browser') {
+    $api_key = variable_get('addressfield_geosuggest_api_key', NULL);
+  }
+  else if ($type == 'server') {
+    $api_key = variable_get('addressfield_geosuggest_api_key_server', NULL);
+  }
+
   if (empty($api_key)) {
     watchdog('addressfield_geosuggest',
-      'API key was not set. Please set it via the variable addressfield_geosuggest_api_key.',
+      'API key was not set. Please set it via the variables addressfield_geosuggest_api_key and addressfield_geosuggest_api_key_server.',
       [],
       WATCHDOG_ERROR);
   }
@@ -368,7 +379,7 @@ function addressfield_geosuggest_fetch_place_id($place_id) {
     'query' => [
       'placeid' => $place_id,
       'fields' => 'place_id',
-      'key' => addressfield_geosuggest_api_key(),
+      'key' => addressfield_geosuggest_api_key('server'),
       'language' => $language->language,
     ],
   ]);
@@ -379,7 +390,7 @@ function addressfield_geosuggest_fetch_place_id($place_id) {
     watchdog('addressfield_geosuggest', 'HTTP request for fetching the place id @placeid failed due to: @message', [
       '@placeid' => $place_id,
       '@message' => $response->error,
-    ]);
+    ], WATCHDOG_ERROR);
     return NULL;
   }
 
@@ -389,6 +400,13 @@ function addressfield_geosuggest_fetch_place_id($place_id) {
   $resp_msg = json_decode($response->data);
   if ($resp_msg->status == 'OK') {
     return $resp_msg->result->place_id;
+  }
+  elseif ($resp_msg->status == 'REQUEST_DENIED') {
+    watchdog('addressfield_geosuggest', 'HTTP request for fetching the place id @placeid failed due to: @message', [
+      '@placeid' => $place_id,
+      '@message' => $resp_msg->error_message,
+    ], WATCHDOG_ERROR);
+    return NULL;
   }
 
   return NULL;
@@ -410,7 +428,7 @@ function addressfield_geosuggest_get_place_id_for_address($address) {
     'query' => [
       'input' => $address,
       'inputtype' => 'textquery',
-      'key' => addressfield_geosuggest_api_key(),
+      'key' => addressfield_geosuggest_api_key('server'),
       'fields' => 'place_id',
       'language' => $language->language,
     ],
