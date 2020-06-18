@@ -207,7 +207,7 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
   // to identify the element.
   $element['widget'] = [
     '#type' => 'item',
-    '#title' => $instance['label'],
+    '#title' => t($instance['label']),
     '#markup' => "<div id='$css_id' class='form-item-input'></div>",
     // If field is required, show it in the label as well.
     '#required' => $element['#required'],
