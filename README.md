@@ -6,11 +6,12 @@ component.
 
 # Configuration
 
-The API key is via the variable `addressfield_geosuggest_api_key`. There is no
-UI, so it has to be set via:
+The API key is via the variable `addressfield_geosuggest_api_key` and
+`addressfield_geosuggest_api_key_server`. There is no UI, so it has to be set via:
 
 ```php
 drush vset addressfield_geosuggest_api_key [api_key]
+drush vset addressfield_geosuggest_api_key_server [api_key]
 ```
 
 There are some global settings, that can be configured through variables. If 
