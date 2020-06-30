@@ -7,7 +7,6 @@ import Geosuggest from "./components/Geosuggest";
   Drupal.behaviors.addressfieldGeosuggest = {
     attach: () => {
       const elements = Drupal.settings.addressfield_geosuggest;
-
       elements.forEach(element => {
         let element_id = element.element_id;
         let values_elm_id = element.values_element_id;
@@ -41,6 +40,10 @@ import Geosuggest from "./components/Geosuggest";
           settings['cardinality'] = element.cardinality;
         }
 
+        if ('types' in element) {
+          settings['types'] = [element.types];
+        }
+        console.log(settings);
         ReactDOM.render(
           <Geosuggest
             valuesContainer={document.getElementById(values_elm_id)}
