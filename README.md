@@ -6,11 +6,11 @@ component.
 
 # Configuration
 
-The API key is via the variable `addressfield_geosuggest_api_key` and
+The API key is via the variable `addressfield_geosuggest_api_key_browser` and
 `addressfield_geosuggest_api_key_server`. There is no UI, so it has to be set via:
 
 ```php
-drush vset addressfield_geosuggest_api_key [api_key]
+drush vset addressfield_geosuggest_api_key_browser [api_key]
 drush vset addressfield_geosuggest_api_key_server [api_key]
 ```
 
@@ -77,10 +77,10 @@ to format js source code.
 ### Running tests
 
 To run the tests, an API key has to be set. This is currently only possible 
-through the environment variable `addressfield_geosuggest_api_key`.
+through the environment variable `addressfield_geosuggest_api_key_browser`.
 
 You can run the tests for example using the cli:
 ```bash
-export addressfield_geosuggest_api_key='[your api key]'
+export addressfield_geosuggest_api_key_browser='[your api key]'
 php ./scripts/run-tests.sh Addressfield
 ```
