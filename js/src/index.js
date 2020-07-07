@@ -7,7 +7,6 @@ import Geosuggest from "./components/Geosuggest";
   Drupal.behaviors.addressfieldGeosuggest = {
     attach: () => {
       const elements = Drupal.settings.addressfield_geosuggest;
-
       elements.forEach(element => {
         let element_id = element.element_id;
         let values_elm_id = element.values_element_id;
@@ -24,21 +23,37 @@ import Geosuggest from "./components/Geosuggest";
         // component.
         let settings = {};
 
-        if ('available_countries' in element) {
-          settings['country'] = element.available_countries;
+        if ("available_countries" in element) {
+          settings["country"] = element.available_countries;
         }
 
-        if ('location_bias' in element && 'radius' in element) {
-          settings['location'] = element.location_bias;
-          settings['radius'] = element.radius;
+        if ("location_bias" in element && "radius" in element.location_bias) {
+          settings["radius"] = element.location_bias.radius;
+          settings["location"] = new google.maps.LatLng({
+            lat: element.location_bias.lat,
+            lng: element.location_bias.lng
+          });
         }
 
-        if ('bound_bias' in element) {
-          settings['bounds'] = element.bound_bias;
+        if ("bound_bias" in element) {
+          settings["bounds"] = new google.maps.LatLngBounds(
+            new google.maps.LatLng(
+              element.bound_bias.swlat,
+              element.bound_bias.swlng
+            ),
+            new google.maps.LatLng(
+              element.bound_bias.nelat,
+              element.bound_bias.nelng
+            )
+          );
         }
 
-        if ('cardinality' in element) {
-          settings['cardinality'] = element.cardinality;
+        if ("cardinality" in element) {
+          settings["cardinality"] = element.cardinality;
+        }
+
+        if ("types" in element) {
+          settings["types"] = [element.types];
         }
 
         ReactDOM.render(

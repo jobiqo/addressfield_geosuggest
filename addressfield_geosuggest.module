@@ -8,7 +8,7 @@
 /**
  * Returns the set google places API.
  *
- * The key is set via the variable "addressfield_geosuggest_api_key" and
+ * The key is set via the variable "addressfield_geosuggest_api_key_browser" and
  * "addressfield_geosuggest_api_key_server".
  *
  * @param string $type
@@ -20,7 +20,7 @@
 function addressfield_geosuggest_api_key($type = 'browser') {
   $api_key = NULL;
   if ($type == 'browser') {
-    $api_key = variable_get('addressfield_geosuggest_api_key', NULL);
+    $api_key = variable_get('addressfield_geosuggest_api_key_browser', NULL);
   }
   elseif ($type == 'server') {
     $api_key = variable_get('addressfield_geosuggest_api_key_server', NULL);
@@ -28,7 +28,7 @@ function addressfield_geosuggest_api_key($type = 'browser') {
 
   if (empty($api_key)) {
     watchdog('addressfield_geosuggest',
-      'API key was not set. Please set it via the variables addressfield_geosuggest_api_key and addressfield_geosuggest_api_key_server.',
+      'API key was not set. Please set it via the variables addressfield_geosuggest_api_key_browser and addressfield_geosuggest_api_key_server.',
       [],
       WATCHDOG_ERROR);
   }
@@ -69,12 +69,12 @@ function addressfield_geosuggest_field_widget_settings_form($field, $instance) {
     $settings = $widget['settings'];
 
     // Values for the types setting.
-    $types = array(
+    $types = [
       'geocode',
       'establishment',
       '(regions)',
       '(cities)',
-    );
+    ];
 
     // @todo: Implement forms for all settings.
     $form['placeholder'] = [
@@ -84,7 +84,7 @@ function addressfield_geosuggest_field_widget_settings_form($field, $instance) {
       '#default_value' => empty($settings['placeholder']) ? t('Search locations') : $settings['placeholder'],
     ];
 
-    $form['available_countries'] = array(
+    $form['available_countries'] = [
       '#type' => 'select',
       '#multiple' => TRUE,
       '#title' => t('Available countries'),
@@ -92,24 +92,24 @@ function addressfield_geosuggest_field_widget_settings_form($field, $instance) {
       '#options' => _addressfield_country_options_list(),
       '#default_value' => $settings['available_countries'],
       '#weight' => 1,
-    );
+    ];
 
-    $form['format_handlers'] = array(
+    $form['format_handlers'] = [
       '#type' => 'checkboxes',
       '#title' => t('Format handlers'),
       '#options' => addressfield_format_plugins_options(),
       '#default_value' => $settings['format_handlers'],
       '#weight' => 1,
-    );
+    ];
 
-    $form['types'] = array(
+    $form['types'] = [
       '#type' => 'select',
       '#title' => t('Place types'),
       '#description' => t('The autocomplete service will return results that match any of the specified types, default is geocode.'),
       '#options' => drupal_map_assoc($types),
       '#default_value' => $settings['types'],
       '#weight' => 4,
-    );
+    ];
   }
 
   return $form;
@@ -142,6 +142,11 @@ function addressfield_geosuggest_field_widget_form(&$form, &$form_state, $field,
 
   $location_bias = variable_get('addressfield_geosuggest_location_bias', NULL);
   if (!empty($location_bias)) {
+    // The radius is set in KM but Google expects meters, so multiple by
+    // 1000.
+    if (isset ($location_bias['radius'])) {
+      $location_bias['radius'] = $location_bias['radius'] * 1000;
+    }
     $settings['location_bias'] = $location_bias;
   }
 

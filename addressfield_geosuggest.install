@@ -4,7 +4,7 @@
  * Implements hook_uninstall().
  */
 function addressfield_geosuggest_uninstall() {
-  variable_del("addressfield_geosuggest_api_key");
+  variable_del("addressfield_geosuggest_api_key_browser");
   variable_del("addressfield_geosuggest_api_key_server");
   variable_del("addressfield_geosuggest_available_countries");
   variable_del("addressfield_geosuggest_location_bias");
